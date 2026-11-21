@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# 本机配置: 含个人输出目录, 不进版本控制
+config.json
+config.local.json
+
+# 生成产物与索引 (模板文件不受影响)
+output/
+_list.html
+
+# 临时视频、抽帧、截图、中间脚本
+*.mp4
+*.mov
+*.webm
+frames/
+.work/
+.work*/
+shot_*.png
+*.tmp
+.build_*.py
+.reseed_*.py
+.seed_*.py
+.migrate_*.py
+.recovered_*.py
+
+# 浏览器自动化工具残留
+.playwright-cli/
+playwright-report/
+test-results/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
