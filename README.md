@@ -1,8 +1,10 @@
 # xin-v-study
 
-把一段视频变成图文并茂的单页 HTML 摘要。
+把一段讲解视频变成图文并茂的单页 HTML 摘要。
 
-[English](README_EN.md) · Python 3.8+ · WorkBuddy Skill · 单文件自包含输出
+[English](README_EN.md) · Python 3.8+ · Agent Skill · 单文件自包含输出
+
+![摘要页浅色首屏](assets/screenshots/01-report-light.png)
 
 ---
 
@@ -17,34 +19,70 @@
 - **内容守真**：只做去噪和归纳，不补充背景、不联想、不替作者圆场。摘要篇幅压在原文 20%–35%。
 - **真实配图**：均匀抽帧后逐张读画面，只保留和段落对得上的帧，图注带视频时间点。不生成示意图。
 - **单文件成品**：CSS/JS 内嵌、图片走 base64，断网可完整打开，拷走一个文件就能看。
-- **8 套配色 × 浅深主题**：机甲冷灰、商务蓝、中国红、阿里橙、葡萄籽、薄荷绿、墨水风、青花瓷。右上角切换，两页共享记忆。
+- **8 套配色 × 浅深主题**：机甲冷灰、商务蓝、中国红、阿里橙、葡萄籽、薄荷绿、墨水风、青花瓷。默认薄荷绿，右上角切换，两页共享记忆。
 - **大纲导航**：摘要页顶部自动生成章节目录，点击跳转、滚动高亮当前章节；右下有回到顶部按钮，顶部有滚动进度条。
 - **卡片导航页**：每次生成后自动重建 `_list.html`，支持搜索、按时间/名称排序、新窗口打开。
 - **输入兼容**：本地视频文件、媒体直链、B 站/YouTube 等平台网页地址。
 
-## 快速开始
+## 安装
 
-### 环境
+选一种适合你的方式。
 
-- Python 3.8+
-- WorkBuddy（转录步骤依赖它内置的 `AudioTranscribe` 工具，这是一个宿主能力，不是随仓库分发的 CLI）
-- 依赖由 `scripts/bootstrap.py` 自动安装：`imageio-ffmpeg`（抽帧）、`yt-dlp`（在线下载）
+### 方式一：命令行 / Skill 市场（推荐）
 
-### 安装为 Skill
-
-把整个项目目录放到 WorkBuddy 的 skills 目录下，或用软链指过去：
+用 [`skills` CLI](https://github.com/vercel-labs/skills) 一行命令从仓库安装，支持 Claude Code、Cursor、Codex 等 40+ 工具：
 
 ```bash
-# 方式一：复制
-cp -r xin-v-study ~/.workbuddy/skills/
-
-# 方式二：软链（实体留在原地，改文件即时生效）
-ln -s /path/to/your/xin-v-study ~/.workbuddy/skills/xin-v-study
+npx skills add oscar-wang-xin/xin-v-study
 ```
 
-新会话里即可通过 `@skill:xin-v-study` 调用。
+全局安装（对所有项目生效）与目标工具指定：
 
-### 配置默认输出目录
+```bash
+npx skills add oscar-wang-xin/xin-v-study -g
+npx skills add oscar-wang-xin/xin-v-study --agent claude-code
+```
+
+装之前先看仓库里有哪些技能、或跳过交互确认：
+
+```bash
+npx skills add oscar-wang-xin/xin-v-study --list
+npx skills add oscar-wang-xin/xin-v-study -y
+```
+
+> 命令是 `npx skills`（复数）。也可写作完整地址 `npx skills add https://github.com/oscar-wang-xin/xin-v-study`。后续用 `npx skills update` 更新、`npx skills remove xin-v-study` 卸载。
+
+### 方式二：下载 zip 直接导入
+
+下载仓库根目录的 [`xin-v-study.zip`](xin-v-study.zip)，解压后把整个 `xin-v-study` 目录放进所用工具的 skills 目录即可。包里已含 `SKILL.md`、脚本、模板、规范和本文档，不含本机配置。
+
+```bash
+unzip xin-v-study.zip -d /path/to/your/skills/
+# 或让支持 zip 导入的工具直接选择这个压缩包
+```
+
+WorkBuddy 里也可以放到 `~/.workbuddy/skills/`，新会话用 `@skill:xin-v-study` 调用。
+
+### 方式三：git clone
+
+```bash
+git clone https://github.com/oscar-wang-xin/xin-v-study.git
+cp -r xin-v-study ~/.workbuddy/skills/
+```
+
+想让实体留在原地、改文件即时生效，可以用软链：
+
+```bash
+ln -s /path/to/xin-v-study ~/.workbuddy/skills/xin-v-study
+```
+
+## 环境
+
+- Python 3.8+
+- 转录依赖 WorkBuddy 内置的 `AudioTranscribe` 工具（宿主能力，不是随仓库分发的 CLI）
+- 依赖由 `scripts/bootstrap.py` 自动安装：`imageio-ffmpeg`（抽帧）、`yt-dlp`（在线下载）
+
+## 配置默认输出目录
 
 复制示例配置并改成自己的路径：
 
@@ -60,22 +98,22 @@ cp config.example.json config.json
 
 绝对路径和相对路径都行，相对路径按项目根目录解析。`config.json` 已在 `.gitignore` 里，不会进版本控制。
 
-**默认值只在被选中时生效**：给视频时如果没有明确说保存到哪，skill 会先弹窗让你选——配置里的默认目录（标注实际路径，推荐）、当前工作目录，或其他路径。默认目录不再是静默自动答案；只有你选了它（或请求里直接指定了目录）才会用它。命令行参数优先于配置文件。
+**默认值只在被选中时生效**：给视频时如果没有明确说保存到哪，skill 会先弹窗让你选——配置里的默认目录（标注实际路径，推荐）、当前工作目录，或其他路径。默认目录不是静默自动答案；只有你选了它（或请求里直接指定了目录）才会用。
 
-### 查看帮助
+## 查看帮助
 
 直接问"怎么用""能做什么""怎么改保存目录"，skill 会给出用法引导，不会开始处理视频。完整帮助文本见 `references/help.md`。
 
-### 使用
+## 使用
 
-在 WorkBuddy 里给出视频，说清楚要总结：
+在 WorkBuddy（或其他支持 Agent Skill 的工具）里给出视频，说清楚要总结：
 
 ```text
 @skill:xin-v-study 总结这个视频：/path/to/video.mp4
 @skill:xin-v-study 把这个链接整理成图文摘要：<视频网址>
 ```
 
-也可以直接说"做个视频学习笔记"，附上文件或链接。
+也可以直接说"做个视频学习笔记"，附上文件或链接。没指定保存目录时会先询问。
 
 ## 工作流程
 
@@ -104,13 +142,30 @@ output/
 
 摘要页结构：头部与大纲 → 核心结论深色面板 → 核心要点 → 一图看懂（可选）→ 内容详解（图文交错）→ 客观说明尾部。
 
-导航页：搜索框实时过滤标题/简介/来源，可切换创建时间与名称排序及升降序，点击卡片新窗口打开摘要，卡片显示标题、简介、来源、日期、时长。
+## 界面预览
+
+**深色模式** — 同一份内容，深色下文字与信息图自动适配：
+
+![摘要页深色模式](assets/screenshots/02-report-dark.png)
+
+**8 套配色切换** — 右上角调色盘，配色与明暗正交组合：
+
+![配色选择面板](assets/screenshots/03-palette.png)
+
+**一图看懂** — 视频有清晰流程/并列/对比时用内联 SVG 绘制，文字全部来自转录稿：
+
+![信息图示例](assets/screenshots/04-infographic.png)
+
+**卡片导航页** — 搜索、排序、新窗口打开，卡片显示标题/简介/来源/日期/时长：
+
+![导航页](assets/screenshots/05-navigation.png)
 
 ## 项目结构
 
 ```text
 xin-v-study/
 ├── SKILL.md                      # Skill 定义与执行流程
+├── xin-v-study.zip               # 可直接导入的安装包
 ├── config.example.json           # 默认输出目录示例配置
 ├── scripts/
 │   ├── bootstrap.py              # 依赖检查与安装
@@ -120,8 +175,10 @@ xin-v-study/
 │   └── update_index.py           # 重建卡片导航页
 ├── assets/
 │   ├── report_template.html      # 摘要页模板
-│   └── index_template.html       # 导航页模板
+│   ├── index_template.html       # 导航页模板
+│   └── screenshots/              # 本文档的效果图
 └── references/
+    ├── help.md                   # 用户帮助文本
     ├── workflow.md               # 详细工作流与失败处理
     ├── design_guide.md           # 视觉规范与自检清单
     └── infographic_guide.md      # 信息图绘制规则
@@ -153,12 +210,13 @@ xin-v-study/
 
 ## 注意事项
 
-- 转录依赖 WorkBuddy 宿主提供的 `AudioTranscribe`。脱离 WorkBuddy 单独运行脚本无法完成转录步骤。
+- 转录依赖宿主提供的 `AudioTranscribe`。脱离 WorkBuddy 单独运行脚本无法完成转录步骤。
 - 需要登录态的平台视频，按 `references/workflow.md` 的流程处理，不要硬编凭据。
 - 超过 5 小时或 1 GB 的超长视频需按时间切片后逐段转录。
 - 无语音视频走画面理解退化路径，并会在摘要中注明来源。
 - 模板升级不会自动更新已生成的摘要——成品是单文件自包含的，需要重新生成。改模板后记得回归验证。
 - 配图质量取决于视频画面。纯 PPT 或手绘讲解视频效果好；大量空镜或快速切换的画面，抽帧命中率会低。
+- zip 包在模板或文档更新后需要重新生成（见仓库内生成逻辑）。
 
 ## License
 

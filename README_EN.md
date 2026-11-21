@@ -1,14 +1,16 @@
 # xin-v-study
 
-Turn a video into a rich, single-page HTML digest.
+Turn a explainer video into a rich, single-page HTML digest.
 
-[中文](README.md) · Python 3.8+ · WorkBuddy Skill · Self-contained HTML output
+[中文](README.md) · Python 3.8+ · Agent Skill · Self-contained HTML output
+
+![Digest page in light mode](assets/screenshots/01-report-light.png)
 
 ---
 
 ## What it does
 
-You watch a explainer video and want something you can skim later — not a transcript, not a review, but a clear account of what the video actually said. This skill transcribes the narration, strips filler words, distills the content into a core takeaway, key points, and section-by-section detail, then illustrates it with real frames pulled from the video. The result is a single HTML file that opens offline.
+You watch an explainer video and want something you can skim later — not a transcript, not a review, but a clear account of what the video actually said. This skill transcribes the narration, strips filler words, distills the content into a core takeaway, key points, and section-by-section detail, then illustrates it with real frames pulled from the video. The result is a single HTML file that opens offline.
 
 **The hard rule is fidelity**: nothing the video did not say goes in, and every image is a real frame from the source.
 
@@ -17,34 +19,70 @@ You watch a explainer video and want something you can skim later — not a tran
 - **Faithful summaries** — noise removal and distillation only. No added background, no speculation, no filling in gaps for the speaker. Output stays at 20–35% of the transcript.
 - **Real stills** — frames are sampled evenly, read one by one, and only those that actually match a section are kept. Captions carry video timestamps. No generated illustrations.
 - **Single-file output** — CSS and JS are inline, images are base64. Works offline; copy one file and it still opens.
-- **8 color schemes × light/dark** — Mecha Grey, Business Blue, China Red, Ali Orange, Grape, Mint, Ink, Blue-and-White Porcelain. Switch from the top-right; the choice is shared across pages.
+- **8 color schemes × light/dark** — Mecha Grey, Business Blue, China Red, Ali Orange, Grape, Mint, Ink, Blue-and-White Porcelain. Mint is the default; switch from the top-right, with the choice shared across pages.
 - **Outline navigation** — the digest builds a chapter outline automatically, jumps on click, highlights the current chapter on scroll, and has a back-to-top button and scroll progress bar.
 - **Card index** — every run rebuilds `_list.html` with search, sort by date or name, and new-tab opening.
 - **Flexible input** — local video files, direct media URLs, and platform pages such as Bilibili or YouTube.
 
-## Quick start
+## Installation
 
-### Requirements
+Pick whichever fits your setup.
 
-- Python 3.8+
-- WorkBuddy, for its built-in `AudioTranscribe` tool. This is a host capability, not a CLI bundled in this repo.
-- Dependencies are installed by `scripts/bootstrap.py`: `imageio-ffmpeg` for frame extraction, `yt-dlp` for online downloads.
+### Option 1: CLI / skill marketplace (recommended)
 
-### Install as a skill
-
-Copy the project into your WorkBuddy skills directory, or symlink it:
+Install straight from the repository with the [`skills` CLI](https://github.com/vercel-labs/skills), which targets 40+ tools including Claude Code, Cursor, and Codex:
 
 ```bash
-# Copy
-cp -r xin-v-study ~/.workbuddy/skills/
-
-# Symlink (keep the real files where they are; edits take effect immediately)
-ln -s /path/to/your/xin-v-study ~/.workbuddy/skills/xin-v-study
+npx skills add oscar-wang-xin/xin-v-study
 ```
 
-In a new session, invoke it with `@skill:xin-v-study`.
+Install globally, or target a specific agent:
 
-### Configure the output directory
+```bash
+npx skills add oscar-wang-xin/xin-v-study -g
+npx skills add oscar-wang-xin/xin-v-study --agent claude-code
+```
+
+List the skills in the repo first, or skip interactive prompts:
+
+```bash
+npx skills add oscar-wang-xin/xin-v-study --list
+npx skills add oscar-wang-xin/xin-v-study -y
+```
+
+> The command is `npx skills` (plural). A full URL works too: `npx skills add https://github.com/oscar-wang-xin/xin-v-study`. Later, use `npx skills update` to upgrade and `npx skills remove xin-v-study` to uninstall.
+
+### Option 2: download the zip and import
+
+Download [`xin-v-study.zip`](xin-v-study.zip) from the repository root and unzip it, then drop the whole `xin-v-study` directory into your tool's skills directory. The archive contains `SKILL.md`, scripts, templates, references, and this document — no machine-specific config.
+
+```bash
+unzip xin-v-study.zip -d /path/to/your/skills/
+# or select the archive directly in a tool that supports zip import
+```
+
+For WorkBuddy, place it under `~/.workbuddy/skills/` and call it with `@skill:xin-v-study` in a new session.
+
+### Option 3: git clone
+
+```bash
+git clone https://github.com/oscar-wang-xin/xin-v-study.git
+cp -r xin-v-study ~/.workbuddy/skills/
+```
+
+To keep the real files where they are and have edits take effect immediately, use a symlink:
+
+```bash
+ln -s /path/to/xin-v-study ~/.workbuddy/skills/xin-v-study
+```
+
+## Requirements
+
+- Python 3.8+
+- Transcription uses WorkBuddy's built-in `AudioTranscribe` tool — a host capability, not a CLI bundled in this repo.
+- Dependencies are installed by `scripts/bootstrap.py`: `imageio-ffmpeg` for frame extraction, `yt-dlp` for online downloads.
+
+## Configure the output directory
 
 Copy the example config and set your own path:
 
@@ -60,22 +98,22 @@ cp config.example.json config.json
 
 Absolute and relative paths both work; relative paths resolve from the project root. `config.json` is gitignored.
 
-**The default is applied only when chosen.** If you hand over a video without saying where to save it, the skill prompts you to pick one of: the configured default directory (shown with its resolved path, recommended), the current working directory, or another path. The default is never applied silently — it is used only if you select it or specify a directory in your request. CLI arguments take precedence over config files.
+**The default is applied only when chosen.** If you hand over a video without saying where to save it, the skill prompts you to pick one of: the configured default directory (shown with its resolved path, recommended), the current working directory, or another path. The default is never applied silently — it is used only if you select it or specify a directory in your request.
 
-### Getting help
+## Getting help
 
 Ask "how do I use this", "what can it do", or "how do I change the save directory" and the skill replies with usage guidance without processing any video. The full help text lives in `references/help.md`.
 
-### Usage
+## Usage
 
-Hand it a video in WorkBuddy and say what you want:
+Hand it a video in WorkBuddy (or any agent that supports skills) and say what you want:
 
 ```text
 @skill:xin-v-study summarize this video: /path/to/video.mp4
 @skill:xin-v-study turn this link into a visual digest: <video url>
 ```
 
-You can also just ask for "a video study note" and attach the file or link.
+You can also just ask for "a video study note" and attach the file or link. If you don't specify a save directory, the skill asks first.
 
 ## Workflow
 
@@ -102,13 +140,30 @@ output/
 
 A digest contains: header and outline → dark core-takeaway panel → key points → optional at-a-glance diagram → illustrated sections → factual closing note.
 
-The index offers live search across title, description, and source; sort by creation time or name in either direction; new-tab opening; and cards showing title, description, source, date, and duration.
+## Screenshots
+
+**Dark mode** — the same content, with text and diagrams adapting automatically:
+
+![Digest page in dark mode](assets/screenshots/02-report-dark.png)
+
+**8 color schemes** — a palette button at top-right; scheme and light/dark combine freely:
+
+![Color scheme picker](assets/screenshots/03-palette.png)
+
+**At a glance** — an inline SVG diagram when the video has a clear structure, with all text taken from the transcript:
+
+![Infographic example](assets/screenshots/04-infographic.png)
+
+**Card index** — search, sort, open in a new tab; cards show title, description, source, date, and duration:
+
+![Card index](assets/screenshots/05-navigation.png)
 
 ## Project structure
 
 ```text
 xin-v-study/
 ├── SKILL.md                      # Skill definition and execution flow
+├── xin-v-study.zip               # Ready-to-import archive
 ├── config.example.json           # Example default output config
 ├── scripts/
 │   ├── bootstrap.py              # Dependency check and install
@@ -118,8 +173,10 @@ xin-v-study/
 │   └── update_index.py           # Rebuild the card index
 ├── assets/
 │   ├── report_template.html      # Digest template
-│   └── index_template.html       # Index template
+│   ├── index_template.html       # Index template
+│   └── screenshots/              # Images used in this document
 └── references/
+    ├── help.md                   # User-facing help text
     ├── workflow.md               # Detailed workflow and failure handling
     ├── design_guide.md           # Visual spec and pre-flight checklist
     └── infographic_guide.md      # Diagram rules
@@ -151,12 +208,13 @@ Scheme and light/dark are orthogonal and freely combinable. Choices persist in `
 
 ## Notes
 
-- Transcription depends on the `AudioTranscribe` tool provided by the WorkBuddy host. Running the scripts outside WorkBuddy will not complete that step.
+- Transcription depends on the `AudioTranscribe` tool provided by the host. Running the scripts standalone will not complete that step.
 - For login-gated platforms, follow `references/workflow.md`. Do not hardcode credentials.
 - Videos over 5 hours or 1 GB need time-sliced transcription.
 - Videos without narration fall back to visual understanding, and the digest states that explicitly.
 - Template upgrades do not update existing digests — each output is self-contained. Regenerate them, and regression-check after template edits.
 - Image quality depends on the source. Slide decks and hand-drawn explainers work well; videos with many empty shots or fast cuts give poorer frame matches.
+- Regenerate the zip after template or documentation changes.
 
 ## License
 
