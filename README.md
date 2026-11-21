@@ -164,6 +164,8 @@ output/
 
 ```text
 xin-v-study/
+├── LICENSE                       # MIT 许可证
+├── README.md / README_EN.md      # 中英文说明
 ├── SKILL.md                      # Skill 定义与执行流程
 ├── xin-v-study.zip               # 可直接导入的安装包
 ├── config.example.json           # 默认输出目录示例配置
@@ -220,4 +222,4 @@ xin-v-study/
 
 ## License
 
-许可证待定。使用前请根据自身需求确定并添加 LICENSE 文件。
+[MIT](LICENSE) — 可自由使用、修改、分发，保留版权声明即可，作者不承担任何责任。

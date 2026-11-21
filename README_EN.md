@@ -162,6 +162,8 @@ A digest contains: header and outline → dark core-takeaway panel → key point
 
 ```text
 xin-v-study/
+├── LICENSE                       # MIT License
+├── README.md / README_EN.md      # Documentation (ZH / EN)
 ├── SKILL.md                      # Skill definition and execution flow
 ├── xin-v-study.zip               # Ready-to-import archive
 ├── config.example.json           # Example default output config
@@ -218,4 +220,4 @@ Scheme and light/dark are orthogonal and freely combinable. Choices persist in `
 
 ## License
 
-To be determined. Add a LICENSE file according to your needs before publishing.
+[MIT](LICENSE) — free to use, modify, and distribute with the copyright notice retained. Provided as-is, without warranty.
