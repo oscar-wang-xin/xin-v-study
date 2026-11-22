@@ -49,6 +49,7 @@ Gemini CLI / ...）只要能执行命令即可调用。不依赖任何宿主专�
 """
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -182,8 +183,7 @@ def main() -> int:
         return 2
 
     mode = "srt" if args.srt else ("timestamps" if args.timestamps else "text")
-    tmp_ctx = tempfile.TemporaryDirectory(prefix="xvs-asr-")
-    work = Path(tmp_ctx.name)
+    work = Path(tempfile.mkdtemp(prefix="xvs-asr-"))
     audio = str(video)
     try:
         wav = work / "audio.wav"
@@ -204,10 +204,9 @@ def main() -> int:
         return 0
     finally:
         if args.keep_wav:
-            tmp_ctx._finalizer.detach()
             log(f"临时文件保留在: {work}")
         else:
-            tmp_ctx.cleanup()
+            shutil.rmtree(work, ignore_errors=True)
 
 
 if __name__ == "__main__":

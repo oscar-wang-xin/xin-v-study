@@ -84,6 +84,10 @@ def main() -> int:
         print("未抽出任何帧", file=sys.stderr)
         return 1
 
+    # 保留 (路径, 原始抽帧序号), 时间点按原始序号算。
+    # 若降采样后用重新编号的 index 算时间, manifest 的 time_sec 会整体前移,
+    # 导致配图图注 "视频 XX:XX 处画面" 标错时刻 —— 属于内容失真, 必须按原始序号。
+    indexed = [(p, i) for i, p in enumerate(frames)]
     if len(frames) > args.count:
         if args.count <= 1:
             picked = [0]
@@ -91,13 +95,13 @@ def main() -> int:
             picked = sorted(
                 {round(i * (len(frames) - 1) / (args.count - 1)) for i in range(args.count)}
             )
-        frames = [frames[i] for i in picked]
+        indexed = [indexed[i] for i in picked]
 
     manifest = []
-    for index, src in enumerate(frames, 1):
+    for index, (src, src_index) in enumerate(indexed, 1):
         dst = out / f"frame_{index:03d}.jpg"
         src.replace(dst)
-        manifest.append({"file": str(dst.resolve()), "time_sec": round((index - 1) * interval, 1)})
+        manifest.append({"file": str(dst.resolve()), "time_sec": round(src_index * interval, 1)})
 
     try:
         raw.rmdir()

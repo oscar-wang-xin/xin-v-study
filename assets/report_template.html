@@ -27,7 +27,7 @@
 
   大纲导航自动从 .chapter 的 .ch-num 与 .ch-body h3 生成, 生成时无需填占位符。
   知识脑图同样自动从章节生成; 章节标题过长时, 可在 <article class="chapter"> 上
-  加 data-mind="≤20字的短标签" 让图上文字更精简 (可选, 不填则用 h3 标题)。
+  加 data-mind="短标签" (中文宜 ≤14 字) 让图上文字更精简 (可选, 不填则用 h3 标题)。
   中心节点取 <h1> 标题前 8 字。无章节时整块自动移除。
 
   主题: data-scheme = mecha|business|china|ali|grape|mint|ink|porcelain,
@@ -428,6 +428,7 @@
   .toc-title {
     font-size: .875rem;
     font-weight: 600;
+    min-width: 0; /* flex 子项省略号生效的前提, 否则长标题会撑破卡片 */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -938,6 +939,19 @@
     parts.push('<text x="' + centerX + '" y="' + (centerY + 5) + '" text-anchor="middle" font-family="var(--font-body)" font-size="13" font-weight="700" fill="var(--accent)">' + escapeHtml(rootShown) + '</text>');
     parts.push('</g>');
 
+    // 按可见像素宽度截断标题: 中文约 13px/字, 其余约 7px/字符。
+    // 分支文字起点 leafX+40=510, 框右边 470+250=720, 留 12px 内边距 -> 约 198px 可用。
+    var TEXT_PX = 198;
+    function clipByWidth(s, maxPx) {
+      var w = 0, out = '';
+      for (var k = 0; k < s.length; k++) {
+        var cw = /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(s.charAt(k)) ? 13 : 7;
+        if (w + cw > maxPx - 13) { out += '…'; break; } // 留出省略号位置
+        out += s.charAt(k); w += cw;
+      }
+      return out || s.slice(0, 1);
+    }
+
     // 分支节点
     chapters.forEach(function (a, i) {
       var y = PAD_Y + i * ROW;
@@ -945,8 +959,7 @@
       var titleEl = a.querySelector('.ch-body h3');
       var num = numEl ? numEl.textContent.trim() : String(i + 1).padStart(2, '0');
       var title = a.getAttribute('data-mind') || (titleEl ? titleEl.textContent.trim() : '章节 ' + (i + 1));
-      var maxLen = 20;
-      var shown = title.length > maxLen ? title.slice(0, maxLen - 1) + '…' : title;
+      var shown = clipByWidth(title, TEXT_PX);
       var bw = 250, bh = NODE_H;
       parts.push('<g class="mm-branch">');
       parts.push('<title>' + escapeHtml(num + ' ' + title) + '</title>');

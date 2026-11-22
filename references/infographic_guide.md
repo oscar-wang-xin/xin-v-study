@@ -57,7 +57,7 @@
 ## 四、SVG 骨架
 
 所有骨架都放在模板的 `{{INFOGRAPHIC_BLOCK}}` 位置。
-用 `viewBox="0 0 720 240"` 让图随容器缩放; 颜色用 `var(--accent)` / `var(--accent)` / `var(--ink)` / `var(--rule)` / `var(--field)`,
+用 `viewBox="0 0 720 240"` 让图随容器缩放; 颜色用 `var(--accent)` / `var(--accent-soft)` / `var(--ink)` / `var(--rule)` / `var(--field)`,
 与页面主题自动一致。文字用 `font-family="var(--font-body)"`, 标题可用 `var(--font-body)`。
 
 ### 流程 (横向三步)

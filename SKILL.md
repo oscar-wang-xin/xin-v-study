@@ -116,7 +116,7 @@ python <skill_dir>/scripts/transcribe.py "<Step 1 的绝对路径>" --out <work_
 - 内容详解用图文交错: 第 2、4、6 段给 `<article>` 加 `class="chapter flip reveal"`。
 - 关键帧用 base64 data URI 内嵌, 一图配一段, 图注写清"视频 XX:XX 处画面"; 无对应画面时删掉 `<figure>`, 不让图文对不上。
 - **按需绘制信息图**: 视频有清晰的流程、并列要点、对比或时间线时, 按 `references/infographic_guide.md` 用内联 SVG 填充 `{{INFOGRAPHIC_BLOCK}}`, 图上每个字都必须来自转录稿。视频没有清晰结构时, **整段删掉 `<section class="infographic-block">`**, 不留空壳、不留占位文字。不要交给生图工具猜中文, 会出错字。
-- **知识脑图自动生成**: 模板脚本会从各章节标题画出放射脑图, 与大纲同源, 生成时无需手写 SVG、无需填占位符。章节标题超 20 字且截断失真时, 在该 `<article class="chapter">` 上加 `data-mind="≤20字短标签"`; 短标签必须是对原标题的精简改写或摘录, 不引入新信息。详见 `references/mindmap_guide.md`。无章节时模板自动移除脑图整块, 不要手工保留空壳。
+- **知识脑图自动生成**: 模板脚本会从各章节标题画出放射脑图, 与大纲同源, 生成时无需手写 SVG、无需填占位符。章节标题过长、按节点宽度截断后失真时, 在该 `<article class="chapter">` 上加 `data-mind="短标签"` (中文宜 ≤14 字); 短标签必须是对原标题的精简改写或摘录, 不引入新信息。详见 `references/mindmap_guide.md`。无章节时模板自动移除脑图整块, 不要手工保留空壳。
 - 所有 CSS/JS 内嵌, 不引用任何外部资源。
 - 保留模板的 8 套配色 + 浅深切换: `data-scheme` / `data-theme` 初始化脚本、右上角工具组、`xvs-scheme` / `xvs-theme` 双键都不要动; 大纲导航、知识脑图与回顶按钮由模板自动生成, 不要重写。
 - SVG 信息图一律用 `var(--*)` 取色, 禁止写死颜色, 保证深色模式可读。

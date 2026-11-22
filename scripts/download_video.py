@@ -55,9 +55,12 @@ def main() -> int:
     work = Path(work_dir).expanduser()
     work.mkdir(parents=True, exist_ok=True)
 
-    # 1) 本地已存在的文件 -> 直接返回
+    # 1) 本地已存在的普通文件 -> 直接返回; 目录不是视频, 明确报错
     src = Path(source).expanduser()
-    if src.exists():
+    if src.is_dir():
+        print(f"来源是个目录, 不是视频文件: {source}", file=sys.stderr)
+        return 1
+    if src.is_file():
         print(str(src.resolve()))
         return 0
 
