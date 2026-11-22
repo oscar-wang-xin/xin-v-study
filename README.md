@@ -21,6 +21,7 @@
 - **单文件成品**：CSS/JS 内嵌、图片走 base64，断网可完整打开，拷走一个文件就能看。
 - **8 套配色 × 浅深主题**：机甲冷灰、商务蓝、中国红、阿里橙、葡萄籽、薄荷绿、墨水风、青花瓷。默认薄荷绿，右上角切换，两页共享记忆。
 - **大纲导航**：摘要页顶部自动生成章节目录，点击跳转、滚动高亮当前章节；右下有回到顶部按钮，顶部有滚动进度条。
+- **知识脑图**：从章节标题自动生成放射脑图，与正文一一对应，无需手工绘制；标题过长可用 `data-mind` 短标签精修。
 - **卡片导航页**：每次生成后自动重建 `_list.html`，支持搜索、按时间/名称排序、新窗口打开。
 - **输入兼容**：本地视频文件、媒体直链、B 站/YouTube 等平台网页地址。
 
@@ -79,8 +80,9 @@ ln -s /path/to/xin-v-study ~/.workbuddy/skills/xin-v-study
 ## 环境
 
 - Python 3.8+
-- 转录依赖 WorkBuddy 内置的 `AudioTranscribe` 工具（宿主能力，不是随仓库分发的 CLI）
-- 依赖由 `scripts/bootstrap.py` 自动安装：`imageio-ffmpeg`（抽帧）、`yt-dlp`（在线下载）
+- 全部步骤都是普通 Python 命令行，**不依赖任何特定 Agent 工具**——WorkBuddy、Claude Code、Cursor、Codex 等只要能执行命令就能跑通
+- 依赖由 `scripts/bootstrap.py` 自动安装：`imageio-ffmpeg`（抽帧/抽音频）、`yt-dlp`（在线下载）、`faster-whisper`（本地语音转录）
+- 转录模型在首次使用时下载并缓存到本机（默认 `small` 约 470 MB），之后离线可用；国内下载慢可设 `HF_ENDPOINT=https://hf-mirror.com` 镜像
 
 ## 配置默认输出目录
 
@@ -106,14 +108,16 @@ cp config.example.json config.json
 
 ## 使用
 
-在 WorkBuddy（或其他支持 Agent Skill 的工具）里给出视频，说清楚要总结：
+在任意支持 Skill 的 Agent 工具里给出视频，说清楚要总结。以 WorkBuddy 为例：
 
 ```text
 @skill:xin-v-study 总结这个视频：/path/to/video.mp4
 @skill:xin-v-study 把这个链接整理成图文摘要：<视频网址>
 ```
 
-也可以直接说"做个视频学习笔记"，附上文件或链接。没指定保存目录时会先询问。
+其他工具里直接把视频路径或链接连同"总结这个视频"一起说即可，例如 Claude Code、Cursor 中挂载本目录为 skill 后同样触发。也可以直接说"做个视频学习笔记"，附上文件或链接。没指定保存目录时会先询问。
+
+转录会先检测当前 Agent 宿主：像 WorkBuddy 这类自带音视频转录工具的，直接调用原生能力提效；没有的则自动走随 skill 分发的本地脚本兜底。两条路径都能产出文字稿，不挑工具。
 
 ## 工作流程
 
@@ -121,10 +125,10 @@ cp config.example.json config.json
 |---|---|
 | 0 | 检查并安装依赖，幂等 |
 | 1 | 把本地路径/直链/网页地址统一解析成本地视频文件 |
-| 2 | 用 `AudioTranscribe` 转录语音，得到文字稿 |
+| 2 | 优先用宿主原生转录能力（如 WorkBuddy 的 AudioTranscribe），没有则回退 `scripts/transcribe.py` 本地转录 |
 | 3 | 均匀抽帧，逐张读图，挑出与段落对得上的真实画面 |
 | 4 | 按不失真纪律提炼核心结论、要点、分段详解和标题 |
-| 5 | 套用 `assets/report_template.html` 生成单页 HTML；有清晰结构时画内联 SVG 信息图，没有就整段删掉 |
+| 5 | 套用 `assets/report_template.html` 生成单页 HTML；知识脑图自动从章节生成，有清晰结构时另画内联 SVG 信息图，没有就整段删掉 |
 | 6 | 运行 `scripts/update_index.py` 重建 `_list.html` |
 
 每步的详细标准、登录态处理和失败降级见 `references/workflow.md`。
@@ -140,7 +144,7 @@ output/
 └── 从视频提炼的标题二.html
 ```
 
-摘要页结构：头部与大纲 → 核心结论深色面板 → 核心要点 → 一图看懂（可选）→ 内容详解（图文交错）→ 客观说明尾部。
+摘要页结构：头部与大纲 → 核心结论深色面板 → 核心要点 → 知识脑图 → 一图看懂（可选）→ 内容详解（图文交错）→ 客观说明尾部。
 
 ## 界面预览
 
@@ -171,6 +175,7 @@ xin-v-study/
 ├── config.example.json           # 默认输出目录示例配置
 ├── scripts/
 │   ├── bootstrap.py              # 依赖检查与安装
+│   ├── transcribe.py             # 本地语音转录（faster-whisper，无宿主依赖）
 │   ├── download_video.py         # 多来源视频定位与下载
 │   ├── extract_frames.py         # 均匀抽帧 + 时间点清单
 │   ├── sanitize.py               # 标题转安全文件名
@@ -183,7 +188,8 @@ xin-v-study/
     ├── help.md                   # 用户帮助文本
     ├── workflow.md               # 详细工作流与失败处理
     ├── design_guide.md           # 视觉规范与自检清单
-    └── infographic_guide.md      # 信息图绘制规则
+    ├── infographic_guide.md      # 信息图绘制规则
+    └── mindmap_guide.md          # 知识脑图生成与精修规则
 ```
 
 ## 内容纪律
@@ -208,13 +214,13 @@ xin-v-study/
 | 墨水风 | `#30353c` | 黑白灰 |
 | 青花瓷 | `#1c6b8c` | 偏青钴蓝 |
 
-配色与明暗是两个正交维度，可自由组合。选择存在浏览器 `localStorage`（键 `xvs-scheme` / `xvs-theme`），摘要页和导航页共享。SVG 信息图全部用 CSS 变量取色，深色下自动适配。
+配色与明暗是两个正交维度，可自由组合。选择存在浏览器 `localStorage`（键 `xvs-scheme` / `xvs-theme`），摘要页和导航页共享。SVG 信息图与自动生成的知识脑图全部用 CSS 变量取色，深色下自动适配。
 
 ## 注意事项
 
-- 转录依赖宿主提供的 `AudioTranscribe`。脱离 WorkBuddy 单独运行脚本无法完成转录步骤。
+- 转录优先用宿主原生能力（如 WorkBuddy 的 AudioTranscribe），没有则用本地脚本；走本地脚本时首次需下载模型（几百 MB），之后离线可用。
 - 需要登录态的平台视频，按 `references/workflow.md` 的流程处理，不要硬编凭据。
-- 超过 5 小时或 1 GB 的超长视频需按时间切片后逐段转录。
+- 本地脚本无时长/体积硬上限；仅当内存吃紧时才需对超长音频切片后逐段转录。
 - 无语音视频走画面理解退化路径，并会在摘要中注明来源。
 - 模板升级不会自动更新已生成的摘要——成品是单文件自包含的，需要重新生成。改模板后记得回归验证。
 - 配图质量取决于视频画面。纯 PPT 或手绘讲解视频效果好；大量空镜或快速切换的画面，抽帧命中率会低。

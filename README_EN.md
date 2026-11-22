@@ -21,6 +21,7 @@ You watch an explainer video and want something you can skim later — not a tra
 - **Single-file output** — CSS and JS are inline, images are base64. Works offline; copy one file and it still opens.
 - **8 color schemes × light/dark** — Mecha Grey, Business Blue, China Red, Ali Orange, Grape, Mint, Ink, Blue-and-White Porcelain. Mint is the default; switch from the top-right, with the choice shared across pages.
 - **Outline navigation** — the digest builds a chapter outline automatically, jumps on click, highlights the current chapter on scroll, and has a back-to-top button and scroll progress bar.
+- **Knowledge mind map** — a radial map is generated automatically from chapter titles, mapped one-to-one to the body; no manual drawing needed. Use an optional `data-mind` short label when a title is too long.
 - **Card index** — every run rebuilds `_list.html` with search, sort by date or name, and new-tab opening.
 - **Flexible input** — local video files, direct media URLs, and platform pages such as Bilibili or YouTube.
 
@@ -79,8 +80,9 @@ ln -s /path/to/xin-v-study ~/.workbuddy/skills/xin-v-study
 ## Requirements
 
 - Python 3.8+
-- Transcription uses WorkBuddy's built-in `AudioTranscribe` tool — a host capability, not a CLI bundled in this repo.
-- Dependencies are installed by `scripts/bootstrap.py`: `imageio-ffmpeg` for frame extraction, `yt-dlp` for online downloads.
+- Every step is a plain Python command line — **no host-specific tooling required**. WorkBuddy, Claude Code, Cursor, Codex, etc. all work as long as the agent can run commands.
+- Dependencies are installed by `scripts/bootstrap.py`: `imageio-ffmpeg` (frame/audio extraction), `yt-dlp` (online downloads), `faster-whisper` (local speech-to-text).
+- The ASR model downloads on first use and is cached locally (`small` ≈ 470 MB by default), then works offline. For slow downloads in China, set `HF_ENDPOINT=https://hf-mirror.com`.
 
 ## Configure the output directory
 
@@ -106,14 +108,16 @@ Ask "how do I use this", "what can it do", or "how do I change the save director
 
 ## Usage
 
-Hand it a video in WorkBuddy (or any agent that supports skills) and say what you want:
+Hand it a video in any skill-capable agent tool and say what you want. Example in WorkBuddy:
 
 ```text
 @skill:xin-v-study summarize this video: /path/to/video.mp4
 @skill:xin-v-study turn this link into a visual digest: <video url>
 ```
 
-You can also just ask for "a video study note" and attach the file or link. If you don't specify a save directory, the skill asks first.
+In other tools, mount this directory as a skill and say "summarize this video" together with the file path or link (works in Claude Code, Cursor, etc.). You can also just ask for "a video study note" and attach the file or link. If you don't specify a save directory, the skill asks first.
+
+Transcription first checks the current agent host: hosts with a native audio/video-to-text tool (such as WorkBuddy's AudioTranscribe) use it directly for speed; hosts without one automatically fall back to the bundled local script. Both paths produce the same transcript — no tool is mandatory.
 
 ## Workflow
 
@@ -121,9 +125,9 @@ You can also just ask for "a video study note" and attach the file or link. If y
 |---|---|
 | 0 | Check and install dependencies (idempotent) |
 | 1 | Resolve a local path, direct URL, or platform page into a local video file |
-| 2 | Transcribe narration with `AudioTranscribe` |
+| 2 | Prefer the host's native transcription (e.g. WorkBuddy's AudioTranscribe); fall back to `scripts/transcribe.py` when unavailable |
 | 3 | Sample frames evenly, read them, keep only those matching a section |
-| 4 | Extract the core takeaway, key points, sections, and title without adding content |
+| 4 | Extract the core takeaway, key points, sections, and title without adding content; the mind map is derived from section titles automatically |
 | 5 | Render with `assets/report_template.html`; draw an inline SVG diagram when the video has a clear structure, otherwise drop the block entirely |
 | 6 | Run `scripts/update_index.py` to rebuild `_list.html` |
 
@@ -138,7 +142,7 @@ output/
 └── title-extracted-from-video-2.html
 ```
 
-A digest contains: header and outline → dark core-takeaway panel → key points → optional at-a-glance diagram → illustrated sections → factual closing note.
+A digest contains: header and outline → dark core-takeaway panel → key points → knowledge mind map → optional at-a-glance diagram → illustrated sections → factual closing note.
 
 ## Screenshots
 
@@ -169,6 +173,7 @@ xin-v-study/
 ├── config.example.json           # Example default output config
 ├── scripts/
 │   ├── bootstrap.py              # Dependency check and install
+│   ├── transcribe.py             # Local speech-to-text (faster-whisper, no host dependency)
 │   ├── download_video.py         # Source resolution and download
 │   ├── extract_frames.py         # Even frame sampling + timestamp manifest
 │   ├── sanitize.py               # Title to safe filename
@@ -181,7 +186,8 @@ xin-v-study/
     ├── help.md                   # User-facing help text
     ├── workflow.md               # Detailed workflow and failure handling
     ├── design_guide.md           # Visual spec and pre-flight checklist
-    └── infographic_guide.md      # Diagram rules
+    ├── infographic_guide.md      # Diagram rules
+    └── mindmap_guide.md          # Knowledge mind map generation rules
 ```
 
 ## Content rules
@@ -210,9 +216,9 @@ Scheme and light/dark are orthogonal and freely combinable. Choices persist in `
 
 ## Notes
 
-- Transcription depends on the `AudioTranscribe` tool provided by the host. Running the scripts standalone will not complete that step.
+- Transcription prefers the host's native capability (e.g. WorkBuddy's AudioTranscribe), falling back to the local script; the local path downloads an ASR model on first use (a few hundred MB), then works offline.
 - For login-gated platforms, follow `references/workflow.md`. Do not hardcode credentials.
-- Videos over 5 hours or 1 GB need time-sliced transcription.
+- The local script has no hard duration/size limit; only split very long audio into chunks if memory becomes a concern.
 - Videos without narration fall back to visual understanding, and the digest states that explicitly.
 - Template upgrades do not update existing digests — each output is self-contained. Regenerate them, and regression-check after template edits.
 - Image quality depends on the source. Slide decks and hand-drawn explainers work well; videos with many empty shots or fast cuts give poorer frame matches.

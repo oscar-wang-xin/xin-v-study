@@ -26,6 +26,9 @@
   无对应画面时删掉 <figure>, 不要让图文对不上。
 
   大纲导航自动从 .chapter 的 .ch-num 与 .ch-body h3 生成, 生成时无需填占位符。
+  知识脑图同样自动从章节生成; 章节标题过长时, 可在 <article class="chapter"> 上
+  加 data-mind="≤20字的短标签" 让图上文字更精简 (可选, 不填则用 h3 标题)。
+  中心节点取 <h1> 标题前 8 字。无章节时整块自动移除。
 
   主题: data-scheme = mecha|business|china|ali|grape|mint|ink|porcelain,
         data-theme  = light|dark。两维正交, 键名 xvs-scheme / xvs-theme 与索引页共享。
@@ -577,6 +580,25 @@
     margin: .9rem 0 0;
   }
 
+  /* ---------- 知识脑图 ---------- */
+  .mindmap {
+    background: var(--field);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: clamp(1.1rem, 3vw, 1.9rem);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+  }
+  [data-theme="dark"] .mindmap { box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+  .mindmap svg { display: block; width: 100%; height: auto; }
+  .mindmap .mm-node { transition: opacity 200ms ease; }
+  .mindmap .mm-branch:hover .mm-node { opacity: .82; }
+  .mindmap .fig-note {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    color: var(--ink-soft);
+    margin: .9rem 0 0;
+  }
+
   /* ---------- 内容详解 ---------- */
   .detail { display: flex; flex-direction: column; gap: 1.1rem; }
   .chapter {
@@ -770,6 +792,15 @@
     </ol>
   </section>
 
+  <!-- 知识脑图: JS 运行时从 .chapter 自动生成放射状结构, 生成时无需填占位符 -->
+  <section class="block reveal mindmap-block">
+    <h2 class="block-head"><span class="cn">知识脑图</span><span class="en">MIND MAP</span></h2>
+    <div class="mindmap">
+      <div id="mindmapMount"></div>
+      <p class="fig-note">脑图节点取自各章节标题, 与正文一一对应, 未做外延扩展。</p>
+    </div>
+  </section>
+
   <!-- 可选: 视频里有清晰的流程/步骤/对比/时间线时, 用内联 SVG 画一图看懂 -->
   <section class="block reveal infographic-block">
     <h2 class="block-head"><span class="cn">一图看懂</span><span class="en">AT A GLANCE</span></h2>
@@ -876,6 +907,61 @@
     }).join('');
   }
   var tocItems = [].slice.call(document.querySelectorAll('.toc-item'));
+
+  /* ---- 知识脑图: 从章节标题自动生成左右放射树 ---- */
+  var mmMount = document.getElementById('mindmapMount');
+  if (mmMount && chapters.length) {
+    var W = 760, NODE_H = 34, ROW = 58, PAD_Y = 26;
+    var H = Math.max(chapters.length * ROW + PAD_Y * 2, 150);
+    var centerX = 210, centerY = H / 2;
+    var leafX = 470;
+    var parts = [];
+
+    parts.push('<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="知识脑图: 由各章节标题生成的放射结构">');
+    parts.push('<g fill="none" stroke="var(--rule)" stroke-width="1.6" stroke-linecap="round">');
+    // 连线: 中心 -> 每个分支
+    chapters.forEach(function (a, i) {
+      var y = PAD_Y + i * ROW + NODE_H / 2;
+      var midX = (centerX + leafX) / 2;
+      parts.push('<path d="M' + centerX + ' ' + centerY + ' C' + midX + ' ' + centerY + ' ' + midX + ' ' + y + ' ' + leafX + ' ' + y + '"/>');
+    });
+    parts.push('</g>');
+
+    // 中心节点
+    var cxW = 168, cxH = 54;
+    var h1 = document.querySelector('.hero h1');
+    var rootTitle = h1 ? h1.textContent.trim() : '核心主题';
+    var rootShown = rootTitle.length > 9 ? rootTitle.slice(0, 8) + '…' : rootTitle;
+    parts.push('<g class="mm-node">');
+    parts.push('<title>' + escapeHtml(rootTitle) + '</title>');
+    parts.push('<rect x="' + (centerX - cxW / 2) + '" y="' + (centerY - cxH / 2) + '" width="' + cxW + '" height="' + cxH + '" rx="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8"/>');
+    parts.push('<text x="' + centerX + '" y="' + (centerY + 5) + '" text-anchor="middle" font-family="var(--font-body)" font-size="13" font-weight="700" fill="var(--accent)">' + escapeHtml(rootShown) + '</text>');
+    parts.push('</g>');
+
+    // 分支节点
+    chapters.forEach(function (a, i) {
+      var y = PAD_Y + i * ROW;
+      var numEl = a.querySelector('.ch-num');
+      var titleEl = a.querySelector('.ch-body h3');
+      var num = numEl ? numEl.textContent.trim() : String(i + 1).padStart(2, '0');
+      var title = a.getAttribute('data-mind') || (titleEl ? titleEl.textContent.trim() : '章节 ' + (i + 1));
+      var maxLen = 20;
+      var shown = title.length > maxLen ? title.slice(0, maxLen - 1) + '…' : title;
+      var bw = 250, bh = NODE_H;
+      parts.push('<g class="mm-branch">');
+      parts.push('<title>' + escapeHtml(num + ' ' + title) + '</title>');
+      parts.push('<rect class="mm-node" x="' + leafX + '" y="' + y + '" width="' + bw + '" height="' + bh + '" rx="10" fill="var(--sheet)" stroke="var(--rule)" stroke-width="1.4"/>');
+      parts.push('<circle cx="' + (leafX + 22) + '" cy="' + (y + bh / 2) + '" r="10" fill="var(--field)" stroke="var(--accent)" stroke-width="1.3"/>');
+      parts.push('<text x="' + (leafX + 22) + '" y="' + (y + bh / 2 + 3.5) + '" text-anchor="middle" font-family="var(--font-mono)" font-size="10" font-weight="700" fill="var(--accent)">' + escapeHtml(num) + '</text>');
+      parts.push('<text x="' + (leafX + 40) + '" y="' + (y + bh / 2 + 4.5) + '" font-family="var(--font-body)" font-size="13" font-weight="600" fill="var(--ink)">' + escapeHtml(shown) + '</text>');
+      parts.push('</g>');
+    });
+    parts.push('</svg>');
+    mmMount.innerHTML = parts.join('');
+  } else if (mmMount) {
+    var mmSection = mmMount.closest('.mindmap-block');
+    if (mmSection) mmSection.parentNode.removeChild(mmSection);
+  }
 
   /* ---- 滚动进度 / 大纲高亮 / 回到顶部 ---- */
   var fill = document.getElementById('progressFill');
